@@ -297,20 +297,26 @@ export class DatabaseStorage implements IStorage {
 
   // Notification operations
   async getNotifications(userId?: string, role?: string): Promise<Notification[]> {
-    let query = db.select().from(notifications);
-    
     if (userId && role) {
-      query = query.where(
-        and(
-          eq(notifications.recipientId, userId),
-          eq(notifications.recipientRole, role)
+      return await db
+        .select()
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.recipientId, userId),
+            eq(notifications.recipientRole, role)
+          )
         )
-      );
+        .orderBy(desc(notifications.createdAt));
     } else if (role) {
-      query = query.where(eq(notifications.recipientRole, role));
+      return await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.recipientRole, role))
+        .orderBy(desc(notifications.createdAt));
     }
     
-    return await query.orderBy(desc(notifications.createdAt));
+    return await db.select().from(notifications).orderBy(desc(notifications.createdAt));
   }
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
