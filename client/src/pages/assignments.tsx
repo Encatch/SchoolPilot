@@ -20,6 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FileText, Download, Plus, Search, Calendar, Edit, Eye, Trash2 } from "lucide-react";
+import AddAssignmentModal from "@/components/forms/add-assignment-modal";
+import EditAssignmentModal from "@/components/forms/edit-assignment-modal";
 import type { Assignment, Class } from "@shared/schema";
 
 export default function Assignments() {
@@ -28,6 +30,9 @@ export default function Assignments() {
   const queryClient = useQueryClient();
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -87,7 +92,7 @@ export default function Assignments() {
     },
   });
 
-  const filteredAssignments = assignments?.filter((assignment: Assignment) =>
+  const filteredAssignments = (assignments as Assignment[])?.filter((assignment: Assignment) =>
     `${assignment.title} ${assignment.subject}`
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
@@ -128,7 +133,7 @@ export default function Assignments() {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentRole={user?.role || 'admin'} />
+      <Sidebar currentRole={(user?.role as 'admin' | 'teacher' | 'parent') || 'admin'} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header title="Assignments Management" />
@@ -152,7 +157,7 @@ export default function Assignments() {
                 
                 <div className="flex space-x-2">
                   <Button 
-                    onClick={() => console.log("Create assignment")}
+                    onClick={() => setShowAddModal(true)}
                     className="bg-primary text-white hover:bg-primary/90"
                     data-testid="button-create-assignment"
                   >
@@ -176,11 +181,11 @@ export default function Assignments() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">All classes</SelectItem>
-                      {classes?.map((classItem: Class) => (
+                      {(classes as Class[])?.map((classItem: Class) => (
                         <SelectItem key={classItem.id} value={classItem.id}>
                           {classItem.name} - Section {classItem.section}
                         </SelectItem>
-                      ))}
+                      )) || []}
                     </SelectContent>
                   </Select>
                 </div>
@@ -205,7 +210,7 @@ export default function Assignments() {
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-primary">
-                      {assignments?.length || 0}
+                      {(assignments as Assignment[])?.length || 0}
                     </div>
                     <div className="text-sm text-gray-500">Total Assignments</div>
                   </CardContent>
@@ -213,7 +218,7 @@ export default function Assignments() {
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-accent">
-                      {assignments?.filter((a: Assignment) => a.status === 'active').length || 0}
+                      {(assignments as Assignment[])?.filter((a: Assignment) => a.status === 'active').length || 0}
                     </div>
                     <div className="text-sm text-gray-500">Active</div>
                   </CardContent>
@@ -221,7 +226,7 @@ export default function Assignments() {
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-warning">
-                      {assignments?.filter((a: Assignment) => {
+                      {(assignments as Assignment[])?.filter((a: Assignment) => {
                         const daysUntilDue = getDaysUntilDue(a.dueDate);
                         return daysUntilDue <= 3 && daysUntilDue >= 0 && a.status === 'active';
                       }).length || 0}
@@ -232,7 +237,7 @@ export default function Assignments() {
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-secondary">
-                      {assignments?.filter((a: Assignment) => a.status === 'completed').length || 0}
+                      {(assignments as Assignment[])?.filter((a: Assignment) => a.status === 'completed').length || 0}
                     </div>
                     <div className="text-sm text-gray-500">Completed</div>
                   </CardContent>
@@ -252,7 +257,7 @@ export default function Assignments() {
                     {searchTerm || selectedClass ? "No assignments match your criteria." : "Start by creating your first assignment."}
                   </p>
                   {!searchTerm && !selectedClass && (
-                    <Button onClick={() => console.log("Create assignment")} data-testid="button-create-first">
+                    <Button onClick={() => setShowAddModal(true)} data-testid="button-create-first">
                       <Plus className="h-4 w-4 mr-2" />
                       Create Assignment
                     </Button>
@@ -333,6 +338,10 @@ export default function Assignments() {
                                   variant="ghost"
                                   size="sm"
                                   className="text-primary hover:text-primary/80"
+                                  onClick={() => {
+                                    setSelectedAssignment(assignment);
+                                    setShowEditModal(true);
+                                  }}
                                   data-testid={`button-edit-${assignment.id}`}
                                 >
                                   <Edit className="h-4 w-4" />
@@ -368,6 +377,20 @@ export default function Assignments() {
           </Card>
         </main>
       </div>
+      
+      <AddAssignmentModal 
+        isOpen={showAddModal} 
+        onClose={() => setShowAddModal(false)} 
+      />
+      
+      <EditAssignmentModal 
+        isOpen={showEditModal} 
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedAssignment(null);
+        }}
+        assignment={selectedAssignment}
+      />
     </div>
   );
 }
